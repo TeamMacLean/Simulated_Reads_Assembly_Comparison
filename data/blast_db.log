@@ -1,0 +1,23 @@
+Error: Argument "input_type". Illegal value, expected `asn1_bin', `asn1_txt', `blastdb', `fasta':  `nucl'
+Error:  (CArgException::eConstraint) Argument "input_type". Illegal value, expected `asn1_bin', `asn1_txt', `blastdb', `fasta':  `nucl'
+Error: Argument "input_type". Illegal value, expected `asn1_bin', `asn1_txt', `blastdb', `fasta':  `nucl'
+Error:  (CArgException::eConstraint) Argument "input_type". Illegal value, expected `asn1_bin', `asn1_txt', `blastdb', `fasta':  `nucl'
+
+
+Building a new DB, current time: 03/22/2018 16:46:36
+New DB name:   /tsl/scratch/shrestha/assembly_comparison/data/solanum.tuberosum
+New DB title:  potato
+Sequence type: Nucleotide
+Keep Linkouts: T
+Keep MBits: T
+Maximum file size: 1000000000B
+
+
+Building a new DB, current time: 03/22/2018 16:49:06
+New DB name:   /tsl/scratch/shrestha/assembly_comparison/data/solanum.tuberosum
+New DB title:  potato
+Sequence type: Nucleotide
+Keep Linkouts: T
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 68169 sequences in 10.7078 seconds.

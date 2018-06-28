@@ -1,0 +1,104 @@
+namespace :index do
+	desc "Generate bowtie index for reference sequence"
+	file "data/PGSC_DM_v3_scaffolds.fasta.1.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"] do
+		sh "source bowtie2-2.2.9; bowtie2-build --threads 32 -f data/PGSC_DM_v3_scaffolds.fasta data/PGSC_DM_v3_scaffolds.fasta"
+	end
+	file "data/PGSC_DM_v3_scaffolds.fasta.2.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"]
+	file "data/PGSC_DM_v3_scaffolds.fasta.3.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"]
+	file "data/PGSC_DM_v3_scaffolds.fasta.4.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"]
+	file "data/PGSC_DM_v3_scaffolds.fasta.rev.1.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"]
+	file "data/PGSC_DM_v3_scaffolds.fasta.rev.2.bt2" => ["data/PGSC_DM_v3_scaffolds.fasta"]
+
+	task :run => ["data/PGSC_DM_v3_scaffolds.fasta.bwt"]
+
+end
+
+namespace :blast do
+	desc "make blast index of potato assembly"
+	file "data/solanum.tuberosum.nhr" do
+		sh "blast+-2.3.0; makeblastdb -in data/PGSC_DM_v3_scaffolds.fasta  -dbtype nucl -title potato -out data/solanum.tuberosum -logfile data/blast_db.log"
+	end
+
+	datasetA="data/PPBFX-311_MinFullPasses0_Accuracy80/datasetA/reads_of_insert.fasta"
+	datasetB="data/TCS_Kamil_Witek_S5_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetB/reads_of_insert.fasta"
+	datasetC="data/TCS_Kamil_Witek_S6_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetC/reads_of_insert.fasta"
+	datasetD="data/TCS_Kamil_Witek_S7_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetD/reads_of_insert.fasta"
+	datasetE="data/TCS_Kamil_Witek_S8_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetE/reads_of_insert.fasta"
+
+
+	desc "make blast index of pacbio consensus data, enriched by renseq baits"
+
+	file "#{datasetA}.nhr" => ["#{datasetA}"] do
+		sh "source blast+-2.3.0; makeblastdb -in #{datasetA} -dbtype nucl -title pacbiodatasetA -out #{datasetA} -logfile #{datasetA}.log"
+	end
+
+	file "#{datasetB}.nhr" => ["#{datasetB}"] do
+		sh "source blast+-2.3.0; makeblastdb -in #{datasetB} -dbtype nucl -title pacbiodatasetB -out #{datasetB} -logfile #{datasetB}.log"
+	end
+
+	file "#{datasetC}.nhr" => ["#{datasetC}"] do
+		sh "source blast+-2.3.0; makeblastdb -in #{datasetC} -dbtype nucl -title pacbiodatasetC -out #{datasetC} -logfile #{datasetC}.log"
+	end
+
+	file "#{datasetD}.nhr" => ["#{datasetD}"] do
+		sh "source blast+-2.3.0; makeblastdb -in #{datasetD} -dbtype nucl -title pacbiodatasetD -out #{datasetD} -logfile #{datasetD}.log"
+	end
+	file "#{datasetE}.nhr" => ["#{datasetE}"] do
+		sh "source blast+-2.3.0; makeblastdb -in #{datasetE} -dbtype nucl -title pacbiodatasetE -out #{datasetE} -logfile #{datasetE}.log"
+	end
+
+
+	file "results/bait_mapped_to_solanum.txt" => ["data/renseq-bait-library-sequences.fasta"] do
+		sh "source blast+-2.3.0; blastn -db data/solanum.tuberosum -query data/renseq-bait-library-sequences.fasta -out results/bait_mapped_to_solanum.txt -perc_identity 80 -outfmt 6 -num_alignments 10"
+	end
+
+	file "results/baits_mapped_to_pacbio_consensus_datasetA.txt" => ["data/renseq-bait-library-sequences.fasta", "#{datasetA}.nhr"] do
+		sh "source blast+-2.3.0; blastn -db #{datasetA} -query data/renseq-bait-library-sequences.fasta -out results/baits_mapped_to_pacbio_consensus_datasetA.txt -outfmt 6 "
+	end
+
+	file "results/baits_mapped_to_pacbio_consensus_datasetB.txt" => ["data/renseq-bait-library-sequences.fasta", "#{datasetB}.nhr"] do
+		sh "source blast+-2.3.0; blastn -db #{datasetB} -query data/renseq-bait-library-sequences.fasta  -out results/baits_mapped_to_pacbio_consensus_datasetB.txt -outfmt 6 "
+	end
+
+	file "results/baits_mapped_to_pacbio_consensus_datasetC.txt" => ["data/renseq-bait-library-sequences.fasta", "#{datasetC}.nhr"] do
+		sh "source blast+-2.3.0; blastn -db #{datasetC} -query data/renseq-bait-library-sequences.fasta -out results/baits_mapped_to_pacbio_consensus_datasetC.txt -outfmt 6"
+	end
+
+	file "results/baits_mapped_to_pacbio_consensus_datasetD.txt" => ["data/renseq-bait-library-sequences.fasta", "#{datasetD}.nhr"] do
+		sh "source blast+-2.3.0; blastn -db #{datasetD} -query data/renseq-bait-library-sequences.fasta -out results/baits_mapped_to_pacbio_consensus_datasetD.txt -outfmt 6 "
+	end
+
+	file "results/baits_mapped_to_pacbio_consensus_datasetE.txt" => [ "data/renseq-bait-library-sequences.fasta", "#{datasetE}.nhr"] do
+		sh "source blast+-2.3.0; blastn -db #{datasetE} -query data/renseq-bait-library-sequences.fasta -out results/baits_mapped_to_pacbio_consensus_datasetE.txt -outfmt 6 "
+	end
+	task :map_to_datasetA => ["results/baits_mapped_to_pacbio_consensus_datasetA.txt"]
+	task :map_to_datasetB => ["results/baits_mapped_to_pacbio_consensus_datasetB.txt"]
+	task :map_to_datasetC => ["results/baits_mapped_to_pacbio_consensus_datasetC.txt"]
+	task :map_to_datasetD => ["results/baits_mapped_to_pacbio_consensus_datasetD.txt"]
+	task :map_to_datasetE => ["results/baits_mapped_to_pacbio_consensus_datasetE.txt"]
+
+
+	file "results/bait_mapped_to_solanum_subseq_positions.txt" => ["results/bait_mapped_to_solanum.txt"] do
+		sh "awk '{print $2, $9, $10}' results/bait_mapped_to_solanum.txt > results/bait_mapped_to_solanum_subseq_positions.txt"
+	end
+	file "results/bait_mapped_to_solanum.fasta" => ["results/bait_mapped_to_solanum_subseq_positions.txt"] do
+		sh "python ~/scripts/process_ngs/process_fasta_fastq.py -i data/PGSC_DM_v3_scaffolds.fasta --subseq --list results/bait_mapped_to_solanum_refseq_points.txt --addtosubseq 120 --output results/bait_mapped_to_solanum.fasta"
+	end
+	multitask :index => ["#{datasetA}.nhr", "#{datasetB}.nhr", "#{datasetC}.nhr", "#{datasetD}.nhr", "#{datasetE}.nhr"]
+	desc "Blast baits to solanum reference sequence"
+	task :bait_to_Solanum => ["bait_mapped_to_solanum.txt"]
+	desc "Blast baits to a sample pacbio ROI consensus sequence"
+	multitask :bait_to_pacbiodata => [:index, :map_to_datasetA, :map_to_datasetB, :map_to_datasetC, :map_to_datasetD, :map_to_datasetE ]
+
+end
+
+namespace :art do
+	file "results/MiSeq_nblrr_enrichment_simulated_from_potato_assembly_1.fq" => ["blast:blastn"] do
+		sh "~/art_bin_MountRainier/art_illumina --seqSys MSv3 --in results/bait_mapped_to_solanum.fasta --len 250 --paired --minQ 10 --maxQ 40 --fcov 100 -o results/MiSeq_nblrr_enrichment_simulated_from_potato_assembly_ --id MiSeqv3-2500 --sdev 200 --mflen 600"
+	end
+
+	file "results/HiSeq_nblrr_enrichment_simulated_from_potato_assembly_1.fq" => ["blast:blastn"] do
+		sh "~/art_bin_MountRainier/art_illumina --seqSys HS25 --in results/bait_mapped_to_solanum.fasta --len 150 --paired --minQ 10 --maxQ 40 --fcov 100 -o results/HiSeq_nblrr_enrichment_simulated_from_potato_assembly_ --id HiSeq2500 --sdev 200 --mflen 600"
+	end
+	multitask :run => ["results/MiSeq_nblrr_enrichment_simulated_from_potato_assembly_1.fq", "results/HiSeq_nblrr_enrichment_simulated_from_potato_assembly_1.fq"]
+end

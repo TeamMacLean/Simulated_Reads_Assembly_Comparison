@@ -1,0 +1,7 @@
+source blast+-2.3.0; blastn -db ddata/TCS_Kamil_Witek_S6_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetC/reads_of_insert.fasta -query data/renseq-bait-library-sequences.fasta -out results/baits_mapped_to_pacbio_consensus_datasetC.txt -outfmt 6
+BLAST Database error: No alias or index file found for nucleotide database [ddata/TCS_Kamil_Witek_S6_PAC_minfullpass0_minaccuracy80_2016_01_04/datasetC/reads_of_insert.fasta] in search path [/usr/users/TSL_20/shrestha/workarea/assembly_comparison::]
+rake aborted!
+Command failed with status (2): [source blast+-2.3.0; blastn -db ddata/TCS_...]
+/usr/users/TSL_20/shrestha/workarea/assembly_comparison/rakefile:64:in `block (2 levels) in <top (required)>'
+Tasks: TOP => blast:bait_to_pacbiodata => blast:map_to_datasetC => results/baits_mapped_to_pacbio_consensus_datasetC.txt
+(See full trace by running task with --trace)
