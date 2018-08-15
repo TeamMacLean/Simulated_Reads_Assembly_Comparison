@@ -4,7 +4,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, engine = 'python3')
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(engine.path = list(
+  python = '/usr/bin/python3',
+  ruby = '/usr/local/bin/ruby'
+))
 
 ```
 
@@ -27,7 +31,7 @@ blast -db database -query seqToMap.fasta -out output.txt -outfmt 6
 
 From the BLAST output, baits that mapped to PacBio consensus sequences completely and without any gap are selected and the result was sorted in ascending order by bait ID and percentage of mapping identity. The mapping percentage identity was then plotted to visually select the best lowest percentage identity.
 
-```{python, engine.path='usr/bin/python3'}
+```{python}
 import sys, json
 import operator
 import matplotlib
@@ -92,7 +96,7 @@ fig.savefig('results/baits_best_of_worsehits_in_5_datasets.png')
 fig.show()
 ```
 
-From the plot, we can visually determined that ~80% of sequence identity is good to hybridize the bait sequences to the genomic DNA fragments for DNA enrichment and sequencing. 
+From the plot, we can visualize that ~80% of sequence identity is good to hybridize the bait sequences to the genomic DNA fragments for DNA enrichment and sequencing. 
 
 ## RenSeq Enriched Gel Image Analysis for Intensity
 
@@ -100,8 +104,8 @@ For this simulation project, we have tried to base our data on true data as much
 
 The image is cropped so that only the DNA fragments of interested are captured. In the python code below, image cropping is done to capure the DNA fragments of interests between 6000 to 3500 bps. A point to remember is that the DNA fragments length decrease from top to bottom here.
 
-```{python, engine.path='/usr/bin/python3'}
-
+```{python}
+# Importing modules
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
@@ -110,7 +114,25 @@ import PIL.ImageOps
 import random
 import decimal
 import json
+```
 
+```{python}
+# functions to plot
+
+def plot_data_array(data):
+  
+  fig=plt.figure(figsize=(20, 10))
+  plt.plot(data)
+  return fig
+
+def plot_histogram(data):
+  
+  fig=plt.figure(figsize=(20,10))
+  plt.plot(data)
+  return fig
+```
+## Image cropping and analysis
+```{python}
 img = Image.open('enriched_long.tif')
 imgCropped = img.crop((890,180, 990, 212))  # cropping 3.5kb to 6kb
 plt.imshow(np.asarray(imgCropped), cmap="gray")
@@ -119,7 +141,7 @@ plt.imshow(np.asarray(imgCropped), cmap="gray")
 To understand in basic way, an image is a table of pixels in rows and columns. The intensity data can be obtained from each pixel of an image. For our purpose, an intensity of each pixel in a row is obtained and a mean intensity is calculated. This is done for every row of pixels from top to bottom of the cropped image. Then a sum of mean intensities is calculated which is then used to get the proportion of intensity in each row of pixels in the cropped image. From the porportion of intensities, the cumulative proportion of intensity is obtained from top to the bottom of the cropped image.
 
 The python code for the above process is:
-```{python, engine.path='/usr/bin/python3'}
+```{python}
 data = np.array(imgCropped, dtype="float64")   # data is a two-dimensional array
 
 graph_intensities = []
@@ -156,24 +178,21 @@ max_proportion=max(cum_proportions)
 min_proportion=min(cum_proportions)
 
 #Plot intensities, cumulative intensiteis and cumulative proportions
-plt.figure()
+figure=plot_data_array(intensities)
 plt.title("Intensities")
-plt.plot(intensities)
 plt.savefig('results/Intensities.png')
 plt.show()
 
-
-plt.figure()
+figure=plot_data_array(cum_intensities)
 plt.title("Cumulative Intensities")
-plt.plot(cum_intensities)
 plt.savefig('results/cum_intensities.png')
 plt.show()
 
-plt.figure()
+figure=plot_data_array(cum_proportions)
 plt.title("Cumulative Proportions")
-plt.plot(cum_proportions)
 plt.savefig('results/cum_proportions.png')
 plt.show()
+
 
 ```
 
@@ -183,88 +202,185 @@ plt.show()
 knitr::include_graphics('results/Intensities.png')
 ```
 
-At this stage, we would want to know the sequence lengths of the DNA fragments in the cropped image. The image of cumulative proportion of intensities (above) shows there are 32 units/rows of intensities. As the image is cropped to get the DNA fragments from 3.5 kb to 6 kb, the length of bases per unit/row, can be calculated as 
-```{python, engine.path='/usr/bin/python3'}
-unitlength=(6000 - 3500)/32
-print("Unit Length = ", unitlength)
+At this stage, we would want to know the sequence lengths of the DNA fragments in the cropped image. The plots above show that there are 32 units/rows of intensities. As the image is cropped to get the DNA fragments from 3.5 kb to 6 kb, the length of bases per unit/row, can be calculated as
+
+```{python}
+unitLength=(6000 - 3500)/32
+print("Unit Length = ", unitLength)
 ```
 
+## Fragments lengths
 
-## Generating Random Sequence Lengths
+Now that we know the step of fragment length, these can be obtained as
 
-Now, we know the sequence length at each row of intensities in the cropped image, random sequence lengths can be generated by generating random numbers between 0 and 1 and then converting the those numbers to the reciprocal number between the highest (here 6 kb) and lowest (here 3.5 kb) intensities in the cropped image. To understand this in easy terms, a random number 0 would mean a sequence length of 3.5kb, 1 would mean 6 kb and 0.5 would mean 6000 - (6000 - 3500)/2=4750
+```{python}
+if not unitLength - int(unitLength) == 0:
+    unitLength = int(unitLength) + 1
+print(unitLength)
+fragmentlengths=[]
+for x in range(6000, 3500, -(int(unitLength))):
+    #print(x)
+    fragmentlengths.append(x)
+print(fragmentlengths)
+```
 
-The python code to generate random numbers is:
-```{python, engine.path='/usr/bin/python3'}
-#generate 100,000 random values in normal distribution
+## Intensity is proportional to number of fragments
 
-num_of_seqs=100000
+The plots show that the intensity increases to a peak level and then decreases. A chemical stain (e.g ethidium bromide) is use for DNA staining. The more the DNA, the more stain is picked up and shows higher intensity in the gel image. We don't know the exact number of genomic DNA fragments in the cropped image. The fragments are extracted from the gel and a library is prepared for sequencing. The number of sequence reads output from a sequencing platform can be called as the estimated number of fragments in the image. The number of sequence reads in five PacBio sequence reads we obtained are as below:
 
-## generate random values in normal distribution
-np.random.seed(19680801) ## seed value for reproducibility
-mu, sigma = 0.5, 0.15
-random_values = mu + sigma * np.random.randn(100000)
+1) DatasetA = 481513
+2) DatasetB = 184456
+3) DatasetC = 139842
+4) DatasetD = 150815
+5) DatasetE = 170863
 
-# the histogram of the data
-plt.hist(random_values, 50)
+This shows the number of sequence reads obtained from seqeuncing platform can vary. For our purpose, lets assume that we have mean of these five datasets as the mumber of DNA fragments in the image.
 
-plt.xlabel('Random values')
-plt.ylabel('Frequency')
-plt.title('Histogram of ' + str(num_of_seqs) + ' Random Values')
-plt.axis([0,1,0, 7000])
-plt.grid(True)
-plt.text(0.2,6000, r'Binsize=50')
-plt.savefig('results/random_numbers_normal_distribution.png')
+```{python}
+total_to_generate=int(round(np.mean([481513, 184456, 139842, 150815, 170863])))  # take the mean and then round to the nearest whole number and then to integer
+
+print("Total random sequences to generate = " + str(total_to_generate) + ". This value is obtained by taking the average of 5 PacBio datasets ROI consensus reads")
+```
+
+## Number of fragments by intensity
+
+We have assumed the number of fragments in the gel image to be nSequences (above). But we don't know the number of fragments in each row pixels. But this can be obtained by using the proportion of intensity. See code for proportion and cumulative proportion of intensity above.
+
+
+```{python}
+x_sequences=total_to_generate
+total_fragments_proportion=[]
+
+for x, y in zip(proportions, cum_proportions):
+    #print(int(x * x_sequences))
+    total_fragments_proportion.append({"total":int(x * x_sequences), "proportion": x, "cumProportion": y})
+
+seqlength_total_fragments_proportion={}
+for x in range(len(fragmentlengths)):
+    seqlength_total_fragments_proportion[str(fragmentlengths[x])] = total_fragments_proportion[x]
+
+print(sorted(seqlength_total_fragments_proportion.keys(), reverse=True))
+print(seqlength_total_fragments_proportion['3551']["cumProportion"], seqlength_total_fragments_proportion['6000']["cumProportion"])
+
+```
+
+Now, let's see the number of fragments at fragment lengths from 6000 to 3500 bps (fragment lengths decreases from top to bottom)
+
+```{python}
+print("Fragment Length\tFragments")
+for x in seqlength_total_fragments_proportion.keys():
+  print(str(x) + "\t" + str(seqlength_total_fragments_proportion[x]["total"]))
+```
+
+We can see that the number of fragments corelates with the intensity of pixels in the gel image; they increases and then decreases from top to bottom.
+
+
+# Generating Random numbers for retrieving random sequences
+
+Our next object is to generate random number of N sequences where N is our assumed total fragments. The random sequences need to be generated from a complete sequenced reference genome. The chromosome number and a start position need to be chosen randomly and has to be in uniform distribution (as the probability of selecting a chromosome in a genome is equal for all chromosomes ). But to choose a random subsequence from reference genome, we need to generate random numbers. Below is a function for generating random number to select a chromosome.
+
+```{python}
+def random_chromosome_selection(number_of_chromosomes, totalSequences):
+  return np.random.random_integers(1, number_of_chromosomes, totalSequences)
+```
+
+Let's see if the function gives uniform distribution or not
+
+```{python}
+
+data = random_chromosome_selection(10, 200000)    # first parameter is toal number of chromosomes in a genome, second is total no. of simulated sequences to generate
+fig=plt.figure(figsize=(20,10))
+plt.hist(data)
 plt.show()
 ```
 
-Code for translating the random values to the reciprocal sequence lengths between 3.5 kb to 6 kb 
-```{python, engine.path='/usr/bin/python3'}
-# get each point in x-axis in the plot 
-unitlength = (6000 - 3500)/32
+That looks good. The plot looks uniform distribution. Let's write a function to generate a random fragment lengths that covers a range in a row of pixels (i.e if first row of pixel is 6000 bps and second is 5000 bps, it will generate lengths from 5001 to 6000, unitlength is 1000 here)
 
-#print("Each point base pairs: ", unitlength)
-# count=0
-# for count in range(num_of_seqs):
-#     randomvalue=float(random.random())
-#     if randomvalue >= min_proportion and randomvalue <=max_proportion:
-#         random_values.append(randomvalue)
-#         count+=1
-        
-## convert the random values to sequence lengths
-seq_lengths=[round(6000 - x*32*unitlength, 0) for x in random_values]
-#print(",".join([str(x) for x in random_values[:3]]), "..." , ",".join([str(x) for x in random_values[-3:]]))
-#print(",".join([str(x) for x in seq_lengths[:3]]), "..." , ",".join([str(x) for x in seq_lengths[-3:]]))
-
-
-## get seq length data into array 
-seq_length_data=dict()
-for data in range(len(seq_lengths)):
-    seq_length_data[str(data)]=seq_lengths[data]
-
-#print(seq_length_data)
-
-## save sequence lengths as json in a file
-with open("results/seq_lengths.json", "wt") as seqlengthjson:
-    json.dump(seq_length_data, seqlengthjson, sort_keys=True, indent=4, separators=(',', ': '))
-
-seq_lengths=np.array(seq_lengths)
-fig=plt.figure(figsize=(20,30))
-plt.title("Randomly Generated Enriched Sequence Lengths", fontsize=40)
-plt.xlabel("simulated Sequence Lengths", fontsize=32)
-plt.ylabel("Frequency", fontsize=32)
-plt.tick_params(which='both', labelsize=32.00)
-plt.hist(seq_lengths, 50)
-plt.text(4000, 6000, r'BinSize=50', fontsize=30)
-plt.axis([3000,6000, 0, 7000])
-plt.grid(True)
-plt.savefig('results/random_sequences_normal_distribution.png')
-plt.show()
+```{python}
+def randomFragmentLength(total_to_generate, sequenceLength):
+  return np.random.random_integers((sequenceLength-unitLength), sequenceLength, total_to_generate)
 ```
 
 
-## Generating random sequences from a reference sequence using random sequences lengths
+Let's write a function to select a start position in a chromosome and it has to be uniform too.
 
-Since, we have random sequence lengths from code above, subsequences of these lengths can be picked out randomly from a given reference sequence. A reference sequence, in FASTA format, generally has multiple sequences. A completed reference sequence has FASTA file with sequences as chromosomal sequences. An incomplete refernce seqeunce has contig/scaffold sequences.
 
-While picking out random subsequences from  
+```{python}
+def select_start_position(chromosomeLength, subseqLength):
+  try:
+    assert(chromosome > subseqLength)
+  except AssertionError as aerr:
+    return None
+  
+  return np.random.random_integers(1, chromosomeLength-subseqLength)   # gets a random integer between 1 and chromosome - subseqlength)
+```
+
+
+```{python}
+#pick a starnd 1 = +, 2 = -
+def pickStrand():
+  return np.random-randint(1,3)   # 3 is not inclusive
+```
+
+Now let's generate randome fragment lengths
+
+```{python}
+for x in seqlength_total_fragments_proportion.keys():
+  #print(str(x) + "\t" + str(seqlength_total_fragments_proportion[x]["total"]))
+  print(randomFragmentLength(int(x), int(seqlength_total_fragments_proportion[x]["total"])))
+```
+
+Let's use another model for getting fragment lengths. We will use a random value between 0 and 1 and compare this value with a value of intensity from gel image. If the value falls within a range of intensity, the value denotes the fragment length in that intensity range. So here is the python code for generating fragment lengths 
+
+```{python}
+def get_random_number_for_fragment_length(total_to_generate):
+  return(np.random.rand(total_to_generate))   # this will generate N random values between 0 and 1
+```
+Let's plot distribution of total random sequences.
+
+```{python}
+data=get_random_number_for_fragment_length(total_to_generate)
+fig=plt.figure(figsize=(20,10))
+plt.hist(data)
+plt.show()
+```
+
+The plot above show a uniform distribution of random values representing fragment lengths.  Let's try to generate random value individually in a loop and see how their distribution is.
+
+```{python}
+
+data=[]
+for n in range(total_to_generate):
+  data.append(np.random.rand())
+fig=plt.figure(figsize=(20,10))
+plt.hist(data)
+plt.show()
+```
+
+The plot above also shows uniform distribution of random values representing fragment lengths. Now, let's convert the random values to fragment length based on the cumulative proportional intensities.
+
+```{python}
+def get_fragment_length_from_cumproportion(value):
+  
+  for key in sorted(seqlength_total_fragments_proportion.keys(), reverse=True):
+    if value <= seqlength_total_fragments_proportion[key]["cumProportion"]:
+      return int(key)
+
+fragment_lengths=[]
+for x in data:
+  fragment_lengths.append(get_fragment_length_from_cumproportion(x))
+
+for x in fragment_lengths:
+  x=int(x)
+  print("Counts of " + str(x) + " " + str(fragment_lengths.count(x)))
+```
+
+Now, let's plot a histogram of the random fragment lengths.
+
+```{python}
+fig=plt.figure(figsize=(20,10))
+plt.hist(fragment_lengths)
+plt.set_ticklabels(sorted(seqlength_total_fragments_proportion.keys(), reverse=True))
+plt.show()
+```
+
