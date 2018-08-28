@@ -267,7 +267,7 @@ print(seqlength_total_fragments_proportion['3551']["cumProportion"], seqlength_t
 Now, let's see the number of fragments at fragment lengths from 6000 to 3500 bps (fragment lengths decreases from top to bottom)
 
 ```{python}
-print("Fragment Length\tFragments")
+print("Fragment_Length\tFragments")
 for x in seqlength_total_fragments_proportion.keys():
   print(str(x) + "\t" + str(seqlength_total_fragments_proportion[x]["total"]))
 ```
@@ -281,6 +281,7 @@ Our next object is to generate random number of N sequences where N is our assum
 
 ```{python}
 def random_chromosome_selection(number_of_chromosomes, totalSequences):
+  ''' function to select chromosomes randomly '''
   return np.random.random_integers(1, number_of_chromosomes, totalSequences)
 ```
 
@@ -288,7 +289,7 @@ Let's see if the function gives uniform distribution or not
 
 ```{python}
 
-data = random_chromosome_selection(10, 200000)    # first parameter is toal number of chromosomes in a genome, second is total no. of simulated sequences to generate
+data = random_chromosome_selection(10, 200000)    # first parameter is total number of chromosomes in a genome, second is total no. of simulated sequences to generate. This will give randomly selection of chromosomes only
 fig=plt.figure(figsize=(20,10))
 plt.hist(data)
 plt.show()
@@ -297,7 +298,9 @@ plt.show()
 That looks good. The plot looks uniform distribution. Let's write a function to generate a random fragment lengths that covers a range in a row of pixels (i.e if first row of pixel is 6000 bps and second is 5000 bps, it will generate lengths from 5001 to 6000, unitlength is 1000 here)
 
 ```{python}
-def randomFragmentLength(total_to_generate, sequenceLength):
+
+def randomFragmentLength(sequenceLength, total_to_generate):
+  ''' function to generate fragment lengths across a range in a row of pixels'''
   return np.random.random_integers((sequenceLength-unitLength), sequenceLength, total_to_generate)
 ```
 
@@ -307,6 +310,8 @@ Let's write a function to select a start position in a chromosome and it has to 
 
 ```{python}
 def select_start_position(chromosomeLength, subseqLength):
+
+  ''' function to select start position in a chromosome '''
   try:
     assert(chromosome > subseqLength)
   except AssertionError as aerr:
@@ -319,10 +324,11 @@ def select_start_position(chromosomeLength, subseqLength):
 ```{python}
 #pick a starnd 1 = +, 2 = -
 def pickStrand():
+  ''' function to select forward or reverse strand (1 - forward, 2 - reverse) '''
   return np.random-randint(1,3)   # 3 is not inclusive
 ```
 
-Now let's generate randome fragment lengths
+Now let's generate random fragment lengths
 
 ```{python}
 for x in seqlength_total_fragments_proportion.keys():
@@ -370,7 +376,7 @@ fragment_lengths=[]
 for x in data:
   fragment_lengths.append(get_fragment_length_from_cumproportion(x))
 
-for x in fragment_lengths:
+for x in sorted(seqlength_total_fragments_proportion.keys(), reverse=True):
   x=int(x)
   print("Counts of " + str(x) + " " + str(fragment_lengths.count(x)))
 ```
@@ -380,7 +386,77 @@ Now, let's plot a histogram of the random fragment lengths.
 ```{python}
 fig=plt.figure(figsize=(20,10))
 plt.hist(fragment_lengths)
-plt.set_ticklabels(sorted(seqlength_total_fragments_proportion.keys(), reverse=True))
+plt.tick_params(which="both", labelsize=32.00)
+plt.xlabel("Fragment Length", fontsize=32)
+plt.ylabel("Counts", fontsize=32)
 plt.show()
 ```
+
+## Getting ramdon sequences
+
+We have generated random fragment lengths and now we will get random sequences from a reference genome using these random fragment lengths. We will choose random chromosome number, strand and start position of the chromosome.
+
+```{python}
+# lets get the bait mapped regions from blast output result
+bait_regions_mapped = {}
+
+# lets get the chromosome lengths first
+referencelenghts = open("data/PGSC_DM_v3_scaffolds.fasta.txt")
+for line in referencelenghts:
+  line=line.rstrip()
+  if line == "": continue
+  linearray=line.split()
+  if int(linearray[1]) > 3500:
+    bait_regions_mapped[linearray[0]] = {"reflength": int(linearray[1])}
+
+    
+```
+
+```{python}
+result = open("results/bait_mapped_to_solanum.txt")
+for line in result:
+  line == line.rstrip()
+  if line == "": continue
+  linearray=line.split()
+  if int(linearray[5]) == 0 and int(linearray[6]) == 1 and int(linearray[7]) == 120:  # these are number of gaps, start and end position of query
+    bait_regions_mapped[linearray[1]].update({'mapstart':int(linearray[8]), 'mapend': int(linearray[9])})
+result.close()
+for key in list(baits_regions_mapped.keys())[:10]:
+  print(key, baits_regions_mapped[key])
+
+```
+
+Now, using the bait regions mapped, lets get the random sequences
+```{python}
+sorted_chromosomes = sorted(baits_regions_mapped.keys())
+total_number_of_chromosomes=len(sorted_chromosomes)
+counter=0
+
+for random_fragmentlength in fragment_lengths:
+  found = False
+  while not found:
+    random_chromosome_number = np.random.randint(1, total_number_of_chromosomes)
+    chromosome_name=sorted_chromosomes[random_chromosome_number - 1]  ## because in python indexing starts from 0
+    chromosome_length = bait_regions_mapped[chromosome_name]['reflength']
+    
+    #lets get random start position within the start and end mapping position
+    random_startpos_in_bait_hitregion = np.random.randint(bait_regions_mapped[chromosome_name]['mapstart'], bait_regions_mapped[chromosome_name]['mapend'])
+    # we need random fragment length on both side of the random startpos, 
+    
+    random_fragment_start, random_fragment_end = random_startpos_in_bait_hitregion - random_fragmentlength , random_startpos_in_bait_hitregion + random_fragmentlength 
+    if random_fragment_start < 1 and random-frament_end < chromosome_length - random_fragmentlength: 
+      found = False
+    else:
+      bait_regions_mapped[chromosome_name].update({'start':random_fragment_start, 'end':random_fragment_end})
+      found = True
+
+
+for key in baits_regions_mapped.keys()[10]:
+  print(key, baits_regions_mapped[key])
+  
+    
+
+```
+
+
 
