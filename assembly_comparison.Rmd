@@ -5,10 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(engine.path = list(
-  python = '/usr/bin/python3',
-  ruby = '/usr/local/bin/ruby'
-))
+knitr::opts_chunk$set(engine.path=list(python='/usr/bin/python3'), echo=TRUE, results='asis', eval=TRUE)
 
 ```
 
@@ -31,7 +28,7 @@ blast -db database -query seqToMap.fasta -out output.txt -outfmt 6
 
 From the BLAST output, baits that mapped to PacBio consensus sequences completely and without any gap are selected and the result was sorted in ascending order by bait ID and percentage of mapping identity. The mapping percentage identity was then plotted to visually select the best lowest percentage identity.
 
-```{python}
+```{python, echo=TRUE}
 import sys, json
 import operator
 import matplotlib
@@ -104,7 +101,7 @@ For this simulation project, we have tried to base our data on true data as much
 
 The image is cropped so that only the DNA fragments of interested are captured. In the python code below, image cropping is done to capure the DNA fragments of interests between 6000 to 3500 bps. A point to remember is that the DNA fragments length decrease from top to bottom here.
 
-```{python}
+```{python, echo=TRUE}
 # Importing modules
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -116,7 +113,7 @@ import decimal
 import json
 ```
 
-```{python}
+```{python, echo=TRUE}
 # functions to plot
 
 def plot_data_array(data):
@@ -132,7 +129,8 @@ def plot_histogram(data):
   return fig
 ```
 ## Image cropping and analysis
-```{python}
+```{python, echo=TRUE}
+
 img = Image.open('enriched_long.tif')
 imgCropped = img.crop((890,180, 990, 212))  # cropping 3.5kb to 6kb
 plt.imshow(np.asarray(imgCropped), cmap="gray")
@@ -198,7 +196,7 @@ plt.show()
 
 
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 knitr::include_graphics('results/Intensities.png')
 ```
 
@@ -398,28 +396,35 @@ We have generated random fragment lengths and now we will get random sequences f
 
 ```{python}
 # lets get the bait mapped regions from blast output result
-bait_regions_mapped = {}
+baits_regions_mapped = {}
 
 # lets get the chromosome lengths first
-referencelenghts = open("data/PGSC_DM_v3_scaffolds.fasta.txt")
-for line in referencelenghts:
+referencelengths = open("data/PGSC_DM_v3_scaffolds.fasta.txt")
+for line in referencelengths:
   line=line.rstrip()
   if line == "": continue
   linearray=line.split()
   if int(linearray[1]) > 3500:
-    bait_regions_mapped[linearray[0]] = {"reflength": int(linearray[1])}
+    baits_regions_mapped[linearray[0]] = {"reflength": int(linearray[1])}
 
-    
+for key in list(baits_regions_mapped.keys())[:10]:
+  print(key, baits_regions_mapped[key])
 ```
 
 ```{python}
-result = open("results/bait_mapped_to_solanum.txt")
+chromosomes=sorted(baits_regions_mapped.keys())
+result = open("results/bait_mapped_to_solanum_filtered.txt")
 for line in result:
   line == line.rstrip()
   if line == "": continue
   linearray=line.split()
-  if int(linearray[5]) == 0 and int(linearray[6]) == 1 and int(linearray[7]) == 120:  # these are number of gaps, start and end position of query
-    bait_regions_mapped[linearray[1]].update({'mapstart':int(linearray[8]), 'mapend': int(linearray[9])})
+  if linearray[1] in chromosomes and int(linearray[5]) == 0 and int(linearray[6]) == 1 and int(linearray[7]) == 120:  # these are number of gaps, start and end position of query
+    #baits_regions_mapped[linearray[1]].update({'mapstart':int(linearray[8]), 'mapend': int(linearray[9])})
+    baits_regions_mapped[linearray[1]]['mapStart'].append(int(linearray[8]))
+    baits_regions_mapped[linearray[1]]['mapEnd'].append(int(linearray[9]))
+  else:
+    baits_regions_mapped[linearray[1]]['mapStart']=[int(linearray[8])]
+    baits_regions_mapped[linearray[1]]['mapEnd']=[int(linearray[9])]
 result.close()
 for key in list(baits_regions_mapped.keys())[:10]:
   print(key, baits_regions_mapped[key])
@@ -437,17 +442,17 @@ for random_fragmentlength in fragment_lengths:
   while not found:
     random_chromosome_number = np.random.randint(1, total_number_of_chromosomes)
     chromosome_name=sorted_chromosomes[random_chromosome_number - 1]  ## because in python indexing starts from 0
-    chromosome_length = bait_regions_mapped[chromosome_name]['reflength']
+    chromosome_length = baits_regions_mapped[chromosome_name]['reflength']
     
     #lets get random start position within the start and end mapping position
-    random_startpos_in_bait_hitregion = np.random.randint(bait_regions_mapped[chromosome_name]['mapstart'], bait_regions_mapped[chromosome_name]['mapend'])
+    random_startpos_in_bait_hitregion = np.random.randint(baits_regions_mapped[chromosome_name]['mapstart'], baits_regions_mapped[chromosome_name]['mapend'])
     # we need random fragment length on both side of the random startpos, 
     
     random_fragment_start, random_fragment_end = random_startpos_in_bait_hitregion - random_fragmentlength , random_startpos_in_bait_hitregion + random_fragmentlength 
     if random_fragment_start < 1 and random-frament_end < chromosome_length - random_fragmentlength: 
       found = False
     else:
-      bait_regions_mapped[chromosome_name].update({'start':random_fragment_start, 'end':random_fragment_end})
+      baits_regions_mapped[chromosome_name].update({'start':random_fragment_start, 'end':random_fragment_end})
       found = True
 
 
