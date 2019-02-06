@@ -98,7 +98,7 @@ def main():
 	random_fragment_lengths = read_numbers_from_file(options.fragments)
 
 	fragment_counter = 0
-	for fragmentLength in random_fragment_lengths[:10]:
+	for fragmentLength in random_fragment_lengths:
 
 		randomFragmentCreated=False
 		while not randomFragmentCreated:

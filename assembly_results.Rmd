@@ -1,0 +1,55 @@
+---
+title: "assembly_analysis"
+author: "Ram Krishna Shrestha"
+date: "31 January 2019"
+output: html_document
+---
+
+
+## Simulation of Illumina Short Read Dataset
+
+A tool - ART was used for simulation of Illumina short read datasets from randomly generated Renseq Enriched DNA fragments in FASTA format. In order to observe the impact of different variables in the simulated datasets while reads assembly, short reads were simulated with different sets of parameters. Threre is difference of one parameter in each simulated dataset. The parameters varied in each data simulation are: 
+1) Illumina Platform Model (Hiseq, MiSeq, NextSeq)
+2) Short read length (HiSeq - 125, 150; MiSeq - 250, NextSeq- 75)
+3) Coverage of the data generated (10, 20, 30 ,40, 50)
+4) Meansize of fragments (200, 300, 400, 500)
+5) Standard deviation of fragments (15, 20, 25)
+6) Minimum Quality of simulated reads (10,20,30,40)
+7) Max insertions in the simulated reads (1,2,3,4,5)
+
+## Assembly of simulated short read dataset
+
+Simulated short read datasets are assembled using ABYSS tool. We will also use soapdenovo in the future. I would also like to observe the impact of assembly tool input parameters in the quality metrics of the final assembly. I choosed the following input parameters for assembly:
+
+1) Kmer (21,25, 29, 33, 37, 41, 45, 49, 53, 55)
+2) Min coverage (3, 5, 10)
+3) Min kmer coverage (10, 20, 30, 40, 50)
+
+## Assembly Results
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

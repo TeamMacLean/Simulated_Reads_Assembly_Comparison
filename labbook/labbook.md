@@ -20,5 +20,33 @@ A pacbio raw consensus (ROI) data enriched using renseq baits obtained from Kami
 
 ## 20 June 2018
 
-Blast baits sequences to 4 more pacbio ROI consensus data. The more data I have, the more accurate threshold I get.
+Blast baits sequences to 4 more PacBio ROI consensus data. The more data I have, the more accurate threshold I get.
+
+## July 2018
+
+
+
+## August 2018
+
+Random fragment lengths generated
+
+## 30 Sept 2018
+
+Script ready to generate DNA fragments. DNA fragments generated.
+
+## Oct 10
+
+Generating illumina HiSeq2500 150 pb paired end reads with default parameters.
+
+## Jan 20 2019
+
+Writing a new pipeline to add more variablity in the simulated data and assembly.
+
+## Jan 24 2019
+
+Draft Pipeline completed. Running the pipeline to simulated a dataset for a set of parameters. It also does assembly of the data and map the baits to the assembly.
+
+## Jan 31 2019
+
+Jobs are runnning. Assembly and analysis of few datasets completed. Getting the report for the completed datasets.
 
