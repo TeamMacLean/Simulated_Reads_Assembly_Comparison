@@ -27,29 +27,43 @@ Simulated short read datasets are assembled using ABYSS tool. We will also use s
 
 ## Assembly Results
 
+The contigs shorter than 200 bp are filtered out. The analysis is done on the contigs that passed the length threshold.
+
+As we have many parameters, we will fix some parameters value and see the effect of the rest of the parameters on the assembly metrics.
+
+### Effect of Kmer, MinCoverage and MinKmerCoverage on the number of contigs in the assemblies
 
 
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, echo=TRUE}
+library(ggplot2)
+library(dplyr)
+# read the table
+df=read.table('~/assembly_comparison/results/assembly_analysis_report.csv', sep=",", header=TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, echo=TRUE, fig.width=12, fig.height=8}
+ggplot(df, aes(x=as.factor(Kmer), y=Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage))) + facet_wrap(~as.factor(MinCoverage))
 ```
 
-## Including Plots
+The plot above shows that at low kmer coverage the final number of contigs in the assembly is high. However this is not desirable as this could mean a lot of contigs are short in length or highly fragmented assembly. The downstream process can be difficult with very short assembly contigs. Choosing higher Kmer length, reduces the number of contigs significantly than lower Kmer length.
 
-You can also embed plots, for example:
+### Effect of Kmer, MinCoverage and MinKmerCoverage on the maximum contig length in the assemblies
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, echo =TRUE, fig.width=12, fig.height=8}
+ggplot(df, aes(x=as.factor(Kmer), y=MaxContigLength)) + geom_point(aes(color=as.factor(MinKmerCoverage)), position=position_dodge(width=0.5) )  + geom_boxplot() + facet_wrap(~as.factor(MinCoverage))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The Max contig length is higher at lower min kmer coverage and higher kmer length. This means that fewer kmers were enough for elongating the contigs and this could be errorneous. There is significant difference in max contig length at lower kmer coverage of 10 and 50.
+
+### Effect of Bait mapped ratio between assembly and refseq
+
+```{r, echo = TRUE}
+ggplot(df, aes(RatioBaitToRef)) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer)))
+```
+The above plot shows the ration of baits between assembly and the refseq.
+
+```{r, echo = TRUE}
+ggplot(df, aes(RationBaitToRandSeq)) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer)))
+```
+
+The above plot shows the ratio of baits between assembly and random simulated sequence reads.
