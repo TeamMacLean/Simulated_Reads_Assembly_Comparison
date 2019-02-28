@@ -10,7 +10,7 @@ output: html_document
 
 A tool - ART was used for simulation of Illumina short read datasets from randomly generated Renseq Enriched DNA fragments in FASTA format. In order to observe the impact of different variables in the simulated datasets while reads assembly, short reads were simulated with different sets of parameters. Threre is difference of one parameter in each simulated dataset. The parameters varied in each data simulation are: 
 1) Illumina Platform Model (Hiseq, MiSeq, NextSeq)
-2) Short read length (HiSeq - 125, 150; MiSeq - 250, NextSeq- 75)
+2) Short read length (HiSeq - 125, 150; MiSeq - 250, NextSeq- 75)q
 3) Coverage of the data generated (10, 20, 30 ,40, 50)
 4) Meansize of fragments (200, 300, 400, 500)
 5) Standard deviation of fragments (15, 20, 25)
@@ -37,6 +37,7 @@ As we have many parameters, we will fix some parameters value and see the effect
 ```{r, echo=TRUE}
 library(ggplot2)
 library(dplyr)
+library(cowplot)
 # read the table
 df=read.table('~/assembly_comparison/results/assembly_analysis_report.csv', sep=",", header=TRUE)
 ```
@@ -58,12 +59,56 @@ The Max contig length is higher at lower min kmer coverage and higher kmer lengt
 ### Effect of Bait mapped ratio between assembly and refseq
 
 ```{r, echo = TRUE}
-ggplot(df, aes(RatioBaitToRef)) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer)))
+ggplot(df, aes(log(RatioBaitToRef))) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer), alpha=0.1))
 ```
-The above plot shows the ration of baits between assembly and the refseq.
+The above plot shows the ratio of baits between assembly and the refseq.
 
 ```{r, echo = TRUE}
-ggplot(df, aes(RationBaitToRandSeq)) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer)))
+ggplot(df, aes(log(RatioBaitToRandSeq))) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer), alpha=0.1))
 ```
 
 The above plot shows the ratio of baits between assembly and random simulated sequence reads.
+
+### How does mean size of simulated data affect number of assembly contigs
+
+```{r, echo = TRUE, fig.width=14}
+plot1<-ggplot(df, aes(as.factor(MeanSize), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)),alpha=0.5) + facet_wrap(~as.factor(Kmer))
+plot2<-ggplot(df, aes(as.factor(MeanSize), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
+plot_grid(plot1, plot2, ncol=2, nrow=1)
+```
+
+The above plot shows the number of contigs in the assembly when the data is simulated with different mean size.
+
+
+### How does standard deviation of simulated data affect number of assembly contigs
+
+```{r, echo = TRUE, fig.width=14}
+plot1<-ggplot(df, aes(as.factor(Stdev), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)),alpha=0.5) + facet_wrap(~as.factor(Kmer))
+plot2<-ggplot(df, aes(as.factor(Stdev), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
+plot_grid(plot1, plot2, ncol=2, nrow = 1)
+```
+
+The above plot shows the number of contigs in the assembly when the data is simulated with different standard deviation.
+
+### How does minimum quality of simulated data affect number of assembly contigs
+
+```{r, echo = TRUE, fig.width=14}
+plot1 <- ggplot(df, aes(as.factor(MinQuality), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)), alpha=0.5) + facet_wrap(~as.factor(Kmer))
+plot2 <- ggplot(df, aes(as.factor(MinQuality), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
+plot_grid(plot1, plot2, ncol=2, nrow=1)
+```
+
+The above plot shows the number of contigs in the assembly when the data is simulated with different minimum quality.
+
+
+### How does maximum insertions in simulated data affect number of assembly contigs
+
+```{r, echo = TRUE, fig.width=14}
+plot1 <- ggplot(df, aes(as.factor(MaxInsertion), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage))) + facet_wrap(~as.factor(Kmer))
+plot2 <- ggplot(df, aes(as.factor(MaxInsertion), Contigs)) + geom_point(aes(color=as.factor(MinCoverage))) + facet_wrap(~as.factor(Kmer))
+plot_grid(plot1, plot2, ncol=2, nrow=1)
+```
+
+The above plot shows the number of contigs in the assembly when the data is simulated with different insertions.
+
+
