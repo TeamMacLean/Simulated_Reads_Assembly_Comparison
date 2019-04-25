@@ -10,7 +10,7 @@ output: html_document
 
 A tool - ART was used for simulation of Illumina short read datasets from randomly generated Renseq Enriched DNA fragments in FASTA format. In order to observe the impact of different variables in the simulated datasets while reads assembly, short reads were simulated with different sets of parameters. Threre is difference of one parameter in each simulated dataset. The parameters varied in each data simulation are: 
 1) Illumina Platform Model (Hiseq, MiSeq, NextSeq)
-2) Short read length (HiSeq - 125, 150; MiSeq - 250, NextSeq- 75)q
+2) Short read length (HiSeq - 125, 150; MiSeq - 250, NextSeq- 75)
 3) Coverage of the data generated (10, 20, 30 ,40, 50)
 4) Meansize of fragments (200, 300, 400, 500)
 5) Standard deviation of fragments (15, 20, 25)
@@ -21,9 +21,9 @@ A tool - ART was used for simulation of Illumina short read datasets from random
 
 Simulated short read datasets are assembled using ABYSS tool. We will also use soapdenovo in the future. I would also like to observe the impact of assembly tool input parameters in the quality metrics of the final assembly. I choosed the following input parameters for assembly:
 
-1) Kmer (21,25, 29, 33, 37, 41, 45, 49, 53, 55)
-2) Min coverage (3, 5, 10)
-3) Min kmer coverage (10, 20, 30, 40, 50)
+1) Kmer (21, 25, 29, 33, 37, 41, 45, 49, 53, 55 57)
+2) Mean coverage (10 15 20 25)
+3) Min kmer coverage (1 2 3 4 5)
 
 ## Assembly Results
 
@@ -35,15 +35,19 @@ As we have many parameters, we will fix some parameters value and see the effect
 
 
 ```{r, echo=TRUE}
+library(readr)
 library(ggplot2)
 library(dplyr)
 library(cowplot)
+library(ggridges)
 # read the table
-df=read.table('~/assembly_comparison/results/assembly_analysis_report.csv', sep=",", header=TRUE)
+df<-readr::read_csv('~/assembly_comparison/results/assembly_analysis_report.csv', col_names=TRUE, col_types=cols(Platform=col_character(), ReadLength=col_factor(), Coverage=col_factor(), minquality=col_factor(), MaxInsertion=col_factor(), Kmer=col_factor(), meancoverage=col_factor(), MinKmerCoverage=col_factor()  ) )
+
+str(df)
 ```
 
 ```{r, echo=TRUE, fig.width=12, fig.height=8}
-ggplot(df, aes(x=as.factor(Kmer), y=Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage))) + facet_wrap(~as.factor(MinCoverage))
+ggplot(df, aes(x=Kmer, y=Contigs)) + geom_point(aes(color=MinKmerCoverage)) + facet_wrap(~meancoverage)
 ```
 
 The plot above shows that at low kmer coverage the final number of contigs in the assembly is high. However this is not desirable as this could mean a lot of contigs are short in length or highly fragmented assembly. The downstream process can be difficult with very short assembly contigs. Choosing higher Kmer length, reduces the number of contigs significantly than lower Kmer length.
@@ -51,51 +55,30 @@ The plot above shows that at low kmer coverage the final number of contigs in th
 ### Effect of Kmer, MinCoverage and MinKmerCoverage on the maximum contig length in the assemblies
 
 ```{r, echo =TRUE, fig.width=12, fig.height=8}
-ggplot(df, aes(x=as.factor(Kmer), y=MaxContigLength)) + geom_point(aes(color=as.factor(MinKmerCoverage)), position=position_dodge(width=0.5) )  + geom_boxplot() + facet_wrap(~as.factor(MinCoverage))
+ggplot(df, aes(x=Kmer, y=MaxContigLength)) + geom_point(aes(color=MinKmerCoverage), position=position_dodge(width=0.5) )  + geom_boxplot() + facet_wrap(~meancoverage)
 ```
 
 The Max contig length is higher at lower min kmer coverage and higher kmer length. This means that fewer kmers were enough for elongating the contigs and this could be errorneous. There is significant difference in max contig length at lower kmer coverage of 10 and 50.
 
-### Effect of Bait mapped ratio between assembly and refseq
+### Effect of Bait mapped ratio between assembly and referenceseq
 
 ```{r, echo = TRUE}
-ggplot(df, aes(log(RatioBaitToRef))) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer), alpha=0.1))
+ggplot(df, aes(RatioBaitToRef)) + geom_density_ridges2(aes(y=Kmer)) + facet_wrap(~Coverage)
 ```
 The above plot shows the ratio of baits between assembly and the refseq.
 
 ```{r, echo = TRUE}
-ggplot(df, aes(log(RatioBaitToRandSeq))) + geom_density(aes(colour=as.factor(Kmer), fill=as.factor(Kmer), alpha=0.1))
+ggplot(df, aes(x=log(RatioBaitToRandSeq))) + geom_density_ridges2(aes(y=Kmer))
 ```
 
 The above plot shows the ratio of baits between assembly and random simulated sequence reads.
 
-### How does mean size of simulated data affect number of assembly contigs
-
-```{r, echo = TRUE, fig.width=14}
-plot1<-ggplot(df, aes(as.factor(MeanSize), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)),alpha=0.5) + facet_wrap(~as.factor(Kmer))
-plot2<-ggplot(df, aes(as.factor(MeanSize), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
-plot_grid(plot1, plot2, ncol=2, nrow=1)
-```
-
-The above plot shows the number of contigs in the assembly when the data is simulated with different mean size.
-
-
-### How does standard deviation of simulated data affect number of assembly contigs
-
-```{r, echo = TRUE, fig.width=14}
-plot1<-ggplot(df, aes(as.factor(Stdev), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)),alpha=0.5) + facet_wrap(~as.factor(Kmer))
-plot2<-ggplot(df, aes(as.factor(Stdev), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
-plot_grid(plot1, plot2, ncol=2, nrow = 1)
-```
-
-The above plot shows the number of contigs in the assembly when the data is simulated with different standard deviation.
-
 ### How does minimum quality of simulated data affect number of assembly contigs
 
-```{r, echo = TRUE, fig.width=14}
-plot1 <- ggplot(df, aes(as.factor(MinQuality), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage)), alpha=0.5) + facet_wrap(~as.factor(Kmer))
-plot2 <- ggplot(df, aes(as.factor(MinQuality), Contigs)) + geom_point(aes(color=as.factor(MinCoverage)),alpha=0.3) + facet_wrap(~as.factor(Kmer))
-plot_grid(plot1, plot2, ncol=2, nrow=1)
+```{r, echo = TRUE, fig.width=14, fig.height=20}
+plot1 <- ggplot(df, aes(minquality, Contigs)) + geom_point(aes(color=MinKmerCoverage), alpha=0.5) + facet_wrap(~Kmer)
+plot2 <- ggplot(df, aes(minquality, Contigs)) + geom_point(aes(color=meancoverage),alpha=0.3) + facet_wrap(~Kmer)
+plot_grid(plot1, plot2, ncol=1, nrow=2)
 ```
 
 The above plot shows the number of contigs in the assembly when the data is simulated with different minimum quality.
@@ -103,10 +86,10 @@ The above plot shows the number of contigs in the assembly when the data is simu
 
 ### How does maximum insertions in simulated data affect number of assembly contigs
 
-```{r, echo = TRUE, fig.width=14}
-plot1 <- ggplot(df, aes(as.factor(MaxInsertion), Contigs)) + geom_point(aes(color=as.factor(MinKmerCoverage))) + facet_wrap(~as.factor(Kmer))
-plot2 <- ggplot(df, aes(as.factor(MaxInsertion), Contigs)) + geom_point(aes(color=as.factor(MinCoverage))) + facet_wrap(~as.factor(Kmer))
-plot_grid(plot1, plot2, ncol=2, nrow=1)
+```{r, echo = TRUE, fig.width=14, fig.height=20}
+plot1 <- ggplot(df, aes(MaxInsertion, Contigs)) + geom_point(aes(color=MinKmerCoverage)) + facet_wrap(~Kmer)
+plot2 <- ggplot(df, aes(MaxInsertion, Contigs)) + geom_point(aes(color=meancoverage)) + facet_wrap(~Kmer)
+plot_grid(plot1, plot2, ncol=1, nrow=2)
 ```
 
 The above plot shows the number of contigs in the assembly when the data is simulated with different insertions.
